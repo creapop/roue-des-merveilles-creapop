@@ -1,0 +1,342 @@
+DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roue des Merveilles - Créapop</title>
+
+<style>
+body{
+  margin:0;
+  background:#fffafc;
+  color:#493d46;
+  font-family:Arial,sans-serif;
+  text-align:center;
+}
+
+.container{
+  max-width:600px;
+  margin:auto;
+  padding:25px 15px 40px;
+}
+
+h1{
+  font-size:30px;
+  margin-bottom:8px;
+}
+
+.subtitle{
+  color:#7d6e79;
+  margin-bottom:20px;
+}
+
+.wheel-container{
+  position:relative;
+  width:min(90vw,380px);
+  margin:auto;
+}
+
+canvas{
+  width:100%;
+  height:auto;
+  display:block;
+}
+
+.pointer{
+  position:absolute;
+  top:-2px;
+  left:50%;
+  transform:translateX(-50%);
+  width:0;
+  height:0;
+  border-left:18px solid transparent;
+  border-right:18px solid transparent;
+  border-top:40px solid #493d46;
+  z-index:5;
+}
+
+.center{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:65px;
+  height:65px;
+  border-radius:50%;
+  background:white;
+  border:5px solid #c982a4;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+  z-index:4;
+}
+
+button{
+  margin-top:20px;
+  padding:15px 28px;
+  border:none;
+  border-radius:30px;
+  background:#c982a4;
+  color:white;
+  font-size:18px;
+  font-weight:bold;
+}
+
+button:disabled{
+  opacity:.55;
+}
+
+.result{
+  margin:20px auto 0;
+  padding:18px;
+  max-width:450px;
+  min-height:80px;
+  background:white;
+  border:1px solid #eadde5;
+  border-radius:20px;
+  box-sizing:border-box;
+}
+
+.code{
+  display:inline-block;
+  margin-top:10px;
+  padding:8px 14px;
+  background:#f7e6ee;
+  border-radius:10px;
+  font-weight:bold;
+  letter-spacing:1px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🎡 La Roue des Merveilles</h1>
+
+<p class="subtitle">
+Tourne la roue et découvre ta petite surprise Créapop ! ✨
+</p>
+
+<div class="wheel-container">
+
+<canvas id="wheel" width="700" height="700"></canvas>
+
+<div class="pointer"></div>
+
+<div class="center">🎀</div>
+
+</div>
+
+<button id="spin">🎡 Faire tourner !</button>
+
+<div id="result" class="result">
+<strong>Bonne chance ! 💕</strong><br>
+Clique sur le bouton pour jouer.
+</div>
+
+</div>
+
+<script>
+
+const canvas=document.getElementById("wheel");
+const ctx=canvas.getContext("2d");
+const button=document.getElementById("spin");
+const result=document.getElementById("result");
+
+const prizes=[
+["🎀","Sticker surprise","ROUE-STICKER"],
+["🌸","5 % de rabais","ROUE5"],
+["💌","Petite surprise avec ta commande","ROUE-SURPRISE"],
+["✨","10 % de rabais","ROUE10"],
+["📚","Surprise pour amoureux des livres","ROUE-LECTURE"],
+["🎁","Cadeau mystère","ROUE-CADEAU"],
+["🍀","Tour supplémentaire !",""],
+["💖","Participation au tirage","ROUE-CHANCE"]
+];
+
+const colors=[
+"#f4d7df",
+"#e9d8ef",
+"#dcebdc",
+"#f8e6c9",
+"#dbe8f4",
+"#f4d7df",
+"#dcebdc",
+"#e9d8ef"
+];
+
+const total=prizes.length;
+const slice=Math.PI*2/total;
+
+let rotation=0;
+let spinning=false;
+let extraUsed=false;
+
+function drawWheel(){
+
+const cx=350;
+const cy=350;
+const radius=320;
+
+ctx.clearRect(0,0,700,700);
+
+for(let i=0;i<total;i++){
+
+const start=rotation+i*slice-slice/2;
+const end=start+slice;
+
+ctx.beginPath();
+ctx.moveTo(cx,cy);
+ctx.arc(cx,cy,radius,start,end);
+ctx.closePath();
+
+ctx.fillStyle=colors[i];
+ctx.fill();
+
+ctx.strokeStyle="#ffffff";
+ctx.lineWidth=5;
+ctx.stroke();
+
+ctx.save();
+
+ctx.translate(cx,cy);
+ctx.rotate(start+slice/2);
+
+ctx.textAlign="right";
+ctx.fillStyle="#493d46";
+ctx.font="bold 20px Arial";
+
+let text=prizes[i][0]+" "+prizes[i][1];
+
+if(text.length>31){
+text=text.substring(0,29)+"…";
+}
+
+ctx.fillText(text,radius-18,7);
+
+ctx.restore();
+
+}
+
+ctx.beginPath();
+ctx.arc(cx,cy,38,0,Math.PI*2);
+ctx.fillStyle="white";
+ctx.fill();
+
+}
+
+function spin(){
+
+if(spinning)return;
+
+spinning=true;
+button.disabled=true;
+
+const winner=Math.floor(Math.random()*total);
+
+const target=
+-(winner*slice)+
+(Math.random()-0.5)*slice*0.5;
+
+const startRotation=rotation;
+
+const finalRotation=
+startRotation+
+Math.PI*2*(7+Math.floor(Math.random()*3))+
+target;
+
+const startTime=performance.now();
+const duration=3900;
+
+function animate(time){
+
+const progress=Math.min(
+1,
+(time-startTime)/duration
+);
+
+const easing=1-Math.pow(1-progress,4);
+
+rotation=
+startRotation+
+(finalRotation-startRotation)*easing;
+
+drawWheel();
+
+if(progress<1){
+
+requestAnimationFrame(animate);
+
+}else{
+
+showResult(winner);
+
+}
+
+}
+
+requestAnimationFrame(animate);
+
+}
+
+function showResult(index){
+
+spinning=false;
+
+const emoji=prizes[index][0];
+const name=prizes[index][1];
+const code=prizes[index][2];
+
+if(index===6 && !extraUsed){
+
+extraUsed=true;
+
+button.disabled=false;
+
+button.textContent=
+"🍀 Faire mon tour supplémentaire !";
+
+result.innerHTML=
+"<strong style='font-size:20px'>🍀 Tour supplémentaire !</strong><br><br>"+
+"La chance est de ton côté ! ✨<br>"+
+"<small>Tu peux tourner la roue une deuxième fois.</small>";
+
+return;
+
+}
+
+result.innerHTML=
+"<strong style='font-size:20px'>"+
+emoji+" "+name+
+"</strong>";
+
+if(code){
+
+result.innerHTML+=
+"<br><br>"+
+"Ton code :<br>"+
+"<span class='code'>"+code+"</span>";
+
+}
+
+result.innerHTML+=
+"<br><br>"+
+"<small>Merci d’avoir joué avec Créapop ! 💕</small>";
+
+button.disabled=true;
+button.textContent="💕 Merci d’avoir joué !";
+
+}
+
+button.addEventListener("click",spin);
+
+drawWheel();
+
+</script>
+
+</body>
+</html>
+Ensuite
